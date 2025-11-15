@@ -2,16 +2,18 @@
 
 ## Overview
 
-ChronoChat is a React Native-based iOS note-taking application that allows users to create notes with inline hashtag support. The app follows a simple architecture with local data persistence using AsyncStorage.
+ChronoChat is a React Native-based iOS note-taking application that allows users to create notes with inline hashtag support. The app follows a simple architecture with local data persistence using AsyncStorage and uses Expo’s managed workflow with native development builds for iOS.
 
 ## Technology Stack
 
-- **Frontend Framework**: React Native with TypeScript
+- **Frontend Framework**: React Native 0.81.5 with TypeScript
 - **State Management**: React Context API
 - **Data Persistence**: @react-native-async-storage/async-storage
 - **Navigation**: React Navigation (Stack Navigator)
-- **Development Environment**: Expo CLI
-- **Platform**: iOS (Expo Go)
+- **Runtime**: Expo SDK ~54
+- **Splash**: expo-splash-screen config plugin
+- **Development**: Expo CLI with native dev build (`expo run:ios`) and Expo Go for quick iteration
+- **Platform**: iOS
 
 ## Application Architecture
 
@@ -20,15 +22,22 @@ ChronoChat is a React Native-based iOS note-taking application that allows users
 ```
 src/
 ├── components/
-│   ├── NoteItem.tsx          # Individual note display component
-│   └── TagInput.tsx          # Legacy tag input component (unused)
+│   ├── NoteItem.tsx
+│   ├── ImagePreviewRow.tsx
+│   ├── ImageViewerModal.tsx
+│   ├── MessageInputBar.tsx
+│   ├── DaySeparator.tsx
+│   ├── TagInput.tsx
+│   └── TagsFilter.tsx
 ├── context/
-│   └── NoteContext.tsx       # Global state management for notes
+│   └── NoteContext.tsx
 ├── screens/
-│   ├── MainScreen.tsx        # Primary note-taking interface
-│   └── TagTimelineScreen.tsx # Tag-filtered note view
-├── App.tsx                   # Root application component
-└── index.ts                  # Application entry point
+│   ├── MainScreen.tsx
+│   └── TagTimelineScreen.tsx
+├── utils/
+│   └── filePicker.ts
+├── App.tsx
+└── index.ts
 ```
 
 ### Key Components
@@ -36,11 +45,11 @@ src/
 #### 1. NoteContext (`src/context/NoteContext.tsx`)
 - **Purpose**: Manages global note state and data persistence
 - **Key Functions**:
-  - `addNote(content, tags)`: Creates new notes with extracted hashtags
-  - `deleteNote(id)`: Removes notes by ID
-  - `getNotesByTag(tag)`: Filters notes by tag
-  - `loadNotes()`: Loads persisted notes from AsyncStorage
-  - `saveNotes(notes)`: Persists notes to AsyncStorage
+  - `addNote(content, tags)`
+  - `deleteNote(id)`
+  - `getNotesByTag(tag)`
+  - `loadNotes()`
+  - `saveNotes(notes)`
 
 #### 2. MainScreen (`src/screens/MainScreen.tsx`)
 - **Purpose**: Primary user interface for note creation and display
@@ -53,10 +62,10 @@ src/
 #### 3. NoteItem (`src/components/NoteItem.tsx`)
 - **Purpose**: Renders individual note items
 - **Features**:
-  - Note content display
+  - Content display
   - Tag visualization
   - Timestamp formatting
-  - Delete functionality with confirmation
+  - Delete confirmation
 
 ## Data Architecture
 
@@ -100,7 +109,7 @@ On iOS devices, AsyncStorage data is stored in the application's sandboxed file 
 /Library/Application Support/[Bundle ID]/RCTAsyncLocalStorage_V1/
 ```
 
-Where `[Bundle ID]` is your app's unique identifier (e.g., `com.yourcompany.chronochat`).
+Where `[Bundle ID]` is your app's unique identifier (`com.github.namuan.chronochat.ios`).
 
 ### Storage Details
 
@@ -156,10 +165,11 @@ Notes are stored as a JSON array:
 
 ## Development Notes
 
-- **Expo Go**: Used for development and testing
-- **Hot Reloading**: Supports real-time code changes during development
-- **TypeScript**: Full type safety throughout the application
-- **Error Handling**: Basic error handling for storage operations
+- **Native Dev Build**: Use `npm run ios` (`expo run:ios`) to apply config plugins and validate native behavior.
+- **Expo Go**: Useful for quick iteration; may not reflect native splash config.
+- **Hot Reloading**: Supports real-time code changes.
+- **TypeScript**: Full type safety.
+- **Error Handling**: Basic handling for storage operations.
 
 ## Future Enhancements
 
@@ -171,3 +181,8 @@ Potential improvements that could be implemented:
 - Image attachments
 - Export/import functionality (removed for now)
 - Biometric authentication
+## Splash Screen Configuration
+
+- Managed via `expo-splash-screen` config plugin in `app.json` under `expo.plugins`.
+- Current settings use `./assets/splash-icon.png`, `resizeMode: contain`, and a white background.
+- Expo Go and development builds may not fully reflect plugin properties; use native dev build (`expo run:ios`) or a preview/production build to validate.

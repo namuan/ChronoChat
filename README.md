@@ -89,13 +89,15 @@ StrflowIOS/
 
 To build the app for production:
 
-1. Configure app.json with your app details
-2. Run the build command:
+1. Configure app.json with your app details (including `expo-splash-screen` plugin)
+2. Use EAS Build:
 ```bash
-expo build:ios
+eas build --platform ios --profile production
 ```
-
-3. Follow the Expo build process to generate your IPA file
+3. Submit with EAS Submit:
+```bash
+eas submit --platform ios
+```
 
 ## License
 

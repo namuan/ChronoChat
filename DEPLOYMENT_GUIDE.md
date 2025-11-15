@@ -283,9 +283,16 @@ npm run ios      # iOS simulator/device
 
 #### Build Failures
 ```bash
-# Clear cache and rebuild
+# Clear metro cache
 expo start --clear
-# or
+
+# Reinstall pods
+npx pod-install ios
+
+# Rebuild iOS development build
+npx expo run:ios
+
+# Clear EAS cache and rebuild
 eas build --platform ios --clear-cache
 ```
 
