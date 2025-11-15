@@ -10,6 +10,7 @@ import {
   Platform,
   Alert
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNotes } from '../context/NoteContext';
 import NoteItem from '../components/NoteItem';
@@ -18,6 +19,7 @@ export default function MainScreen({ navigation }: any) {
   const { notes, addNote } = useNotes();
   const [inputText, setInputText] = useState('');
   const [filterTag, setFilterTag] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
 
   const extractTagsFromText = (text: string): { content: string; tags: string[] } => {
     // Find all hashtags in the text (words starting with #)
@@ -39,10 +41,28 @@ export default function MainScreen({ navigation }: any) {
   };
 
   const handleSendNote = async () => {
-    if (inputText.trim()) {
+    if (inputText.trim() || selectedImages.length > 0) {
       const { content, tags } = extractTagsFromText(inputText);
-      await addNote(content, tags);
+      await addNote(content, tags, selectedImages);
       setInputText('');
+      setSelectedImages([]);
+    }
+  };
+
+  const handlePickImages = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission required', 'Please allow access to your photos to add images.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 1,
+    });
+    if (!result.canceled) {
+      const uris = result.assets.map(a => a.uri);
+      setSelectedImages(prev => [...prev, ...uris]);
     }
   };
 
@@ -109,9 +129,15 @@ export default function MainScreen({ navigation }: any) {
             maxLength={1000}
           />
           <TouchableOpacity
-            style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
+            style={styles.cameraButton}
+            onPress={handlePickImages}
+          >
+            <Text style={styles.cameraButtonText}>📷</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.sendButton, (!inputText.trim() && selectedImages.length === 0) && styles.sendButtonDisabled]}
             onPress={handleSendNote}
-            disabled={!inputText.trim()}
+            disabled={!inputText.trim() && selectedImages.length === 0}
           >
             <Text style={styles.sendButtonText}>Send</Text>
           </TouchableOpacity>
@@ -194,6 +220,19 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
+  },
+  cameraButton: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    marginRight: 8,
+  },
+  cameraButtonText: {
+    fontSize: 18,
+    color: '#212529',
   },
   input: {
     flex: 1,

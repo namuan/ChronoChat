@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { useNotes } from '../context/NoteContext';
 import { Note } from '../context/NoteContext';
 
@@ -28,6 +28,13 @@ export default function NoteItem({ note }: NoteItemProps) {
   return (
     <View style={styles.container}>
       <View style={styles.noteContent}>
+        {note.images && note.images.length > 0 && (
+          <View style={styles.imagesContainer}>
+            {note.images.map((uri, index) => (
+              <Image key={index} source={{ uri }} style={styles.noteImage} />
+            ))}
+          </View>
+        )}
         <Text style={styles.noteText}>{note.content}</Text>
         {note.tags.length > 0 && (
           <View style={styles.tagsContainer}>
@@ -73,6 +80,18 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     lineHeight: 22,
+  },
+  imagesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 8,
+  },
+  noteImage: {
+    width: 140,
+    height: 140,
+    borderRadius: 12,
+    marginRight: 8,
+    marginBottom: 8,
   },
   tagsContainer: {
     flexDirection: 'row',

@@ -6,11 +6,12 @@ export interface Note {
   content: string;
   timestamp: Date;
   tags: string[];
+  images?: string[];
 }
 
 interface NoteContextType {
   notes: Note[];
-  addNote: (content: string, tags?: string[]) => Promise<void>;
+  addNote: (content: string, tags?: string[], images?: string[]) => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
   getNotesByTag: (tag: string) => Note[];
 }
@@ -55,12 +56,13 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const addNote = async (content: string, tags: string[] = []) => {
+  const addNote = async (content: string, tags: string[] = [], images: string[] = []) => {
     const newNote: Note = {
       id: Date.now().toString(),
       content,
       timestamp: new Date(),
-      tags
+      tags,
+      images
     };
     
     const updatedNotes = [...notes, newNote];
