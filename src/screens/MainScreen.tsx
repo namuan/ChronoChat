@@ -69,16 +69,24 @@ export default function MainScreen({ navigation }: any) {
   };
 
   const handlePickFiles = async () => {
-    const picked = await pickFile();
-    if (picked) {
-      const base64 = await readFileAsBase64(picked.uri);
-      const attachment: FileAttachment = {
-        uri: picked.uri,
-        name: picked.name,
-        type: picked.type,
-        data: base64,
-      };
-      setSelectedFiles(prev => [...prev, attachment]);
+    try {
+      const picked = await pickFile();
+      if (picked) {
+        const base64 = await readFileAsBase64(picked.uri);
+        const attachment: FileAttachment = {
+          uri: picked.uri,
+          name: picked.name,
+          type: picked.type,
+          data: base64,
+        };
+        setSelectedFiles(prev => [...prev, attachment]);
+      }
+    } catch (error) {
+      console.error('Error picking file:', error);
+      Alert.alert(
+        'File Error',
+        error instanceof Error ? error.message : 'Failed to attach file. Please try again.'
+      );
     }
   };
 
