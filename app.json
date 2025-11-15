@@ -12,13 +12,26 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#ffffff",
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "imageWidth": 200
+        }
+      ]
+    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.chronochat.ios",
+      "bundleIdentifier": "com.github.namuan.chronochat.ios",
       "buildNumber": "1.0.0",
       "infoPlist": {
         "UIUserInterfaceStyle": "Light",
-        "UISupportedInterfaceOrientations": ["UIInterfaceOrientationPortrait"],
+        "UISupportedInterfaceOrientations": [
+          "UIInterfaceOrientationPortrait"
+        ],
         "UIRequiresFullScreen": true
       },
       "config": {
@@ -31,7 +44,8 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.github.namuan.chronochat.ios"
     },
     "web": {
       "favicon": "./assets/favicon.png"
