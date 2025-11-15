@@ -11,6 +11,7 @@ import {
 import ImagePreviewRow from './ImagePreviewRow';
 
 import { FileAttachment } from '../context/NoteContext';
+import { useState } from 'react';
 
 interface MessageInputBarProps {
   inputText: string;
@@ -37,6 +38,7 @@ export default function MessageInputBar({
   onRemoveFile,
   sendDisabled = false,
 }: MessageInputBarProps) {
+  const [showActions, setShowActions] = useState(false);
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -66,11 +68,8 @@ export default function MessageInputBar({
           maxLength={1000}
           editable={true}
         />
-        <TouchableOpacity style={styles.cameraButton} onPress={onPickImages}>
-          <Text style={styles.cameraButtonText}>📷</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.attachButton} onPress={onPickFiles}>
-          <Text style={styles.attachButtonText}>📎</Text>
+        <TouchableOpacity style={styles.addButton} onPress={() => setShowActions(v => !v)}>
+          <Text style={styles.addButtonText}>＋</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.sendButton, sendDisabled && styles.sendButtonDisabled]}
@@ -80,6 +79,16 @@ export default function MessageInputBar({
           <Text style={styles.sendButtonText}>Send</Text>
         </TouchableOpacity>
       </View>
+      {showActions && (
+        <View style={styles.actionsRow}>
+          <TouchableOpacity style={styles.actionButton} onPress={onPickImages}>
+            <Text style={styles.actionButtonText}>📷 Photo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={onPickFiles}>
+            <Text style={styles.actionButtonText}>📎 File</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -107,7 +116,7 @@ const styles = StyleSheet.create({
     maxHeight: 100,
     marginRight: 8,
   },
-  cameraButton: {
+  addButton: {
     backgroundColor: '#f8f9fa',
     borderRadius: 20,
     paddingHorizontal: 14,
@@ -116,21 +125,25 @@ const styles = StyleSheet.create({
     borderColor: '#dee2e6',
     marginRight: 8,
   },
-  cameraButtonText: {
+  addButtonText: {
     fontSize: 18,
     color: '#212529',
   },
-  attachButton: {
+  actionsRow: {
+    flexDirection: 'row',
+    paddingTop: 8,
+  },
+  actionButton: {
     backgroundColor: '#f8f9fa',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 8,
     borderWidth: 1,
     borderColor: '#dee2e6',
-    marginRight: 8,
   },
-  attachButtonText: {
-    fontSize: 18,
+  actionButtonText: {
+    fontSize: 14,
     color: '#212529',
   },
   filesRow: {
