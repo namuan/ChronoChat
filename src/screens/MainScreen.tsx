@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   FlatList,
@@ -12,6 +12,7 @@ import NoteItem from '../components/NoteItem';
 import MessageInputBar from '../components/MessageInputBar';
 import TagsFilter from '../components/TagsFilter';
 import DaySeparator from '../components/DaySeparator';
+import CalendarNavigator from '../components/CalendarNavigator';
 import * as ImagePicker from 'expo-image-picker';
 import { Alert } from 'react-native';
 import { Note, FileAttachment } from '../context/NoteContext';
@@ -23,6 +24,7 @@ export default function MainScreen({ navigation }: any) {
   const [filterTag, setFilterTag] = useState<string | null>(null);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<FileAttachment[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   const extractTagsFromText = (text: string): { content: string; tags: string[] } => {
     const hashtagRegex = /#(\w+)/g;
@@ -90,7 +92,30 @@ export default function MainScreen({ navigation }: any) {
     return Array.from(tagSet).sort();
   };
 
-  const displayNotes = filterTag ? notes.filter(note => note.tags.includes(filterTag)) : notes;
+  const availableDates = useMemo(() => {
+    const dateSet = new Set<string>();
+    notes.forEach(note => {
+      dateSet.add(note.timestamp.toDateString());
+    });
+    return Array.from(dateSet).map(dateStr => new Date(dateStr)).sort((a, b) => b.getTime() - a.getTime());
+  }, [notes]);
+
+  const displayNotes = useMemo(() => {
+    let filtered = notes;
+    
+    // Filter by tag if selected
+    if (filterTag) {
+      filtered = filtered.filter(note => note.tags.includes(filterTag));
+    }
+    
+    // Filter by selected date
+    filtered = filtered.filter(note => 
+      note.timestamp.toDateString() === selectedDate.toDateString()
+    );
+    
+    return filtered;
+  }, [notes, filterTag, selectedDate]);
+
   const sortedNotes = [...displayNotes].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
   const dataWithSeparators = React.useMemo(() => {
@@ -112,6 +137,11 @@ export default function MainScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <CalendarNavigator
+        selectedDate={selectedDate}
+        onDateChange={setSelectedDate}
+        availableDates={availableDates}
+      />
       <TagsFilter tags={getAllTags()} selectedTag={filterTag} onSelectTag={setFilterTag} />
       <FlatList
         data={dataWithSeparators}
