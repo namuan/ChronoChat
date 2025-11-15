@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, Image } from 'react-na
 import { useNotes } from '../context/NoteContext';
 import { Note, FileAttachment } from '../context/NoteContext';
 import ImageViewerModal from './ImageViewerModal';
+import { openFilePreview, getFileIcon } from '../utils/filePreview';
 
 interface NoteItemProps {
   note: Note;
@@ -11,6 +12,7 @@ interface NoteItemProps {
 export default function NoteItem({ note }: NoteItemProps) {
   const { deleteNote } = useNotes();
   const [viewerUri, setViewerUri] = useState<string | null>(null);
+  const [pressedFile, setPressedFile] = useState<string | null>(null);
 
   const handleDelete = () => {
     Alert.alert(
@@ -35,14 +37,20 @@ export default function NoteItem({ note }: NoteItemProps) {
     setViewerUri(null);
   };
 
-  const fileIcon = (type: string) => {
-    if (type.startsWith('image/')) return '🖼️';
-    if (type.startsWith('video/')) return '🎞️';
-    if (type.startsWith('audio/')) return '🔊';
-    if (type.includes('pdf')) return '📄';
-    if (type.includes('sheet') || type.includes('excel')) return '📊';
-    if (type.includes('zip') || type.includes('rar')) return '🗜️';
-    return '📎';
+  const handleFilePress = async (file: FileAttachment) => {
+    try {
+      await openFilePreview(file.uri, file.name, file.type);
+    } catch (error) {
+      console.error('Error opening file:', error);
+    }
+  };
+
+  const handleFilePressIn = (fileName: string) => {
+    setPressedFile(fileName);
+  };
+
+  const handleFilePressOut = () => {
+    setPressedFile(null);
   };
 
   return (
@@ -60,10 +68,20 @@ export default function NoteItem({ note }: NoteItemProps) {
         {note.files && note.files.length > 0 && (
           <View style={styles.filesContainer}>
             {note.files.map((f, idx) => (
-              <View key={idx} style={styles.fileChip}>
-                <Text style={styles.fileIcon}>{fileIcon(f.type)}</Text>
+              <TouchableOpacity 
+                key={idx} 
+                style={[
+                  styles.fileChip, 
+                  pressedFile === f.name && styles.fileChipActive
+                ]} 
+                onPress={() => handleFilePress(f)}
+                onPressIn={() => handleFilePressIn(f.name)}
+                onPressOut={handleFilePressOut}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.fileIcon}>{getFileIcon(f.type)}</Text>
                 <Text style={styles.fileName} numberOfLines={1}>{f.name}</Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         )}
@@ -140,6 +158,14 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     marginRight: 6,
     marginBottom: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    opacity: 0.9,
+  },
+  fileChipActive: {
+    opacity: 1,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    borderColor: 'rgba(255,255,255,0.5)',
   },
   fileIcon: {
     fontSize: 14,

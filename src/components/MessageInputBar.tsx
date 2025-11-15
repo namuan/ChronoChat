@@ -11,6 +11,7 @@ import ImagePreviewRow from './ImagePreviewRow';
 
 import { FileAttachment } from '../context/NoteContext';
 import { useState } from 'react';
+import { openFilePreview } from '../utils/filePreview';
 
 interface MessageInputBarProps {
   inputText: string;
@@ -38,15 +39,44 @@ export default function MessageInputBar({
   sendDisabled = false,
 }: MessageInputBarProps) {
   const [showActions, setShowActions] = useState(false);
+  const [pressedFile, setPressedFile] = useState<string | null>(null);
+
+  const handleFilePreview = async (file: FileAttachment) => {
+    try {
+      await openFilePreview(file.uri, file.name, file.type);
+    } catch (error) {
+      console.error('Error previewing file:', error);
+    }
+  };
+
+  const handleFilePressIn = (fileName: string) => {
+    setPressedFile(fileName);
+  };
+
+  const handleFilePressOut = () => {
+    setPressedFile(null);
+  };
+
   return (
     <View style={styles.inputContainer}>
       <ImagePreviewRow images={selectedImages} onRemove={onRemoveImage} />
       {selectedFiles.length > 0 && (
         <View style={styles.filesRow}>
           {selectedFiles.map((f, idx) => (
-            <View key={idx} style={styles.fileChip}>
-              <Text style={styles.fileName} numberOfLines={1}>{f.name}</Text>
-              <TouchableOpacity onPress={() => onRemoveFile(idx)}>
+            <View key={idx} style={styles.fileChipContainer}>
+              <TouchableOpacity 
+                style={[
+                  styles.fileChip,
+                  pressedFile === f.name && styles.fileChipActive
+                ]}
+                onPress={() => handleFilePreview(f)}
+                onPressIn={() => handleFilePressIn(f.name)}
+                onPressOut={handleFilePressOut}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.fileName} numberOfLines={1}>{f.name}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => onRemoveFile(idx)} style={styles.removeButton}>
                 <Text style={styles.fileRemove}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -148,6 +178,12 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     paddingBottom: 8,
   },
+  fileChipContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 6,
+    marginBottom: 6,
+  },
   fileChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -155,18 +191,33 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    marginRight: 6,
-    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    opacity: 0.9,
+  },
+  fileChipActive: {
+    opacity: 1,
+    backgroundColor: '#dee2e6',
+    borderColor: '#adb5bd',
   },
   fileName: {
     fontSize: 13,
     color: '#212529',
     maxWidth: 120,
-    marginRight: 6,
+  },
+  removeButton: {
+    backgroundColor: '#dc3545',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    marginLeft: 4,
+    borderWidth: 1,
+    borderColor: '#dc3545',
   },
   fileRemove: {
     fontSize: 14,
-    color: '#6c757d',
+    color: '#ffffff',
+    fontWeight: 'bold',
   },
   sendButton: {
     backgroundColor: '#007bff',
