@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image } from 'react-native';
 import { useNotes } from '../context/NoteContext';
 import NoteItem from '../components/NoteItem';
 
@@ -66,6 +67,10 @@ export default function MainScreen({ navigation }: any) {
     }
   };
 
+  const handleRemoveImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
   const getAllTags = () => {
     const tagSet = new Set<string>();
     notes.forEach(note => {
@@ -118,6 +123,25 @@ export default function MainScreen({ navigation }: any) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.inputContainer}
       >
+        {selectedImages.length > 0 && (
+          <View style={styles.imagePreviewRow}>
+            <FlatList
+              data={selectedImages}
+              horizontal
+              keyExtractor={(uri, idx) => uri + idx}
+              renderItem={({ item, index }) => (
+                <View style={styles.imagePreviewItem}>
+                  <Image source={{ uri: item }} style={styles.imagePreviewThumb} />
+                  <TouchableOpacity style={styles.imageRemove} onPress={() => handleRemoveImage(index)}>
+                    <Text style={styles.imageRemoveText}>×</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.imagePreviewContent}
+            />
+          </View>
+        )}
         <View style={styles.inputRow}>
           <TextInput
             style={styles.input}
@@ -216,6 +240,37 @@ const styles = StyleSheet.create({
     borderTopColor: '#e9ecef',
     paddingHorizontal: 16,
     paddingVertical: 12,
+  },
+  imagePreviewRow: {
+    paddingBottom: 8,
+  },
+  imagePreviewContent: {
+    paddingHorizontal: 0,
+  },
+  imagePreviewItem: {
+    position: 'relative',
+    marginRight: 8,
+  },
+  imagePreviewThumb: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+  },
+  imageRemove: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imageRemoveText: {
+    color: '#fff',
+    fontSize: 16,
+    lineHeight: 22,
   },
   inputRow: {
     flexDirection: 'row',
