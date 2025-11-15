@@ -4,7 +4,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
   Platform,
   Text,
 } from 'react-native';
@@ -40,10 +39,7 @@ export default function MessageInputBar({
 }: MessageInputBarProps) {
   const [showActions, setShowActions] = useState(false);
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.inputContainer}
-    >
+    <View style={styles.inputContainer}>
       <ImagePreviewRow images={selectedImages} onRemove={onRemoveImage} />
       {selectedFiles.length > 0 && (
         <View style={styles.filesRow}>
@@ -89,7 +85,7 @@ export default function MessageInputBar({
           </TouchableOpacity>
         </View>
       )}
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -100,6 +96,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#e9ecef',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    paddingBottom: 20, // Add extra bottom padding for keyboard spacing
   },
   inputRow: {
     flexDirection: 'row',

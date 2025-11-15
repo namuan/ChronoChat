@@ -157,7 +157,11 @@ export default function MainScreen({ navigation }: any) {
         inverted
         showsVerticalScrollIndicator={false}
       />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
         <MessageInputBar
           inputText={inputText}
           onChangeText={setInputText}
@@ -183,5 +187,8 @@ const styles = StyleSheet.create({
   notesList: {
     paddingHorizontal: 16,
     paddingTop: 8,
+  },
+  keyboardAvoidingView: {
+    width: '100%',
   },
 });
