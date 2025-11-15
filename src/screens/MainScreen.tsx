@@ -11,8 +11,10 @@ import { useNotes } from '../context/NoteContext';
 import NoteItem from '../components/NoteItem';
 import MessageInputBar from '../components/MessageInputBar';
 import TagsFilter from '../components/TagsFilter';
+import DaySeparator from '../components/DaySeparator';
 import * as ImagePicker from 'expo-image-picker';
 import { Alert } from 'react-native';
+import { Note } from '../context/NoteContext';
 
 export default function MainScreen({ navigation }: any) {
   const { notes, addNote } = useNotes();
@@ -70,13 +72,33 @@ export default function MainScreen({ navigation }: any) {
   const displayNotes = filterTag ? notes.filter(note => note.tags.includes(filterTag)) : notes;
   const sortedNotes = [...displayNotes].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
+  const dataWithSeparators = React.useMemo(() => {
+    const out: ({ type: 'note'; data: Note } | { type: 'separator'; date: Date })[] = [];
+    let lastDate: string | null = null;
+    sortedNotes.forEach(note => {
+      const noteDate = note.timestamp.toDateString();
+      if (noteDate !== lastDate) {
+        out.push({ type: 'separator', date: note.timestamp });
+        lastDate = noteDate;
+      }
+      out.push({ type: 'note', data: note });
+    });
+    return out;
+  }, [sortedNotes]);
+
   return (
     <SafeAreaView style={styles.container}>
       <TagsFilter tags={getAllTags()} selectedTag={filterTag} onSelectTag={setFilterTag} />
       <FlatList
-        data={sortedNotes}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <NoteItem note={item} />}
+        data={dataWithSeparators}
+        keyExtractor={(item, idx) => (item.type === 'note' ? item.data.id : item.date.toISOString()) + idx}
+        renderItem={({ item }) =>
+          item.type === 'separator' ? (
+            <DaySeparator date={item.date} />
+          ) : (
+            <NoteItem note={item.data} />
+          )
+        }
         contentContainerStyle={styles.notesList}
         inverted
         showsVerticalScrollIndicator={false}

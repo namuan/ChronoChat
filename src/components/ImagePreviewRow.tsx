@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, FlatList, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, FlatList, Image, TouchableOpacity, StyleSheet, Text } from 'react-native';
 
 interface ImagePreviewRowProps {
   images: string[];

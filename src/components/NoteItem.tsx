@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { useNotes } from '../context/NoteContext';
 import { Note } from '../context/NoteContext';
+import ImageViewerModal from './ImageViewerModal';
 
 interface NoteItemProps {
   note: Note;
@@ -9,6 +10,7 @@ interface NoteItemProps {
 
 export default function NoteItem({ note }: NoteItemProps) {
   const { deleteNote } = useNotes();
+  const [viewerUri, setViewerUri] = useState<string | null>(null);
 
   const handleDelete = () => {
     Alert.alert(
@@ -25,13 +27,23 @@ export default function NoteItem({ note }: NoteItemProps) {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const handleImagePress = (uri: string) => {
+    setViewerUri(uri);
+  };
+
+  const closeViewer = () => {
+    setViewerUri(null);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.noteContent}>
         {note.images && note.images.length > 0 && (
           <View style={styles.imagesContainer}>
             {note.images.map((uri, index) => (
-              <Image key={index} source={{ uri }} style={styles.noteImage} />
+              <TouchableOpacity key={index} onPress={() => handleImagePress(uri)}>
+                <Image source={{ uri }} style={styles.noteImage} />
+              </TouchableOpacity>
             ))}
           </View>
         )}
@@ -52,6 +64,7 @@ export default function NoteItem({ note }: NoteItemProps) {
           </TouchableOpacity>
         </View>
       </View>
+      <ImageViewerModal visible={!!viewerUri} imageUri={viewerUri} onClose={closeViewer} />
     </View>
   );
 }
