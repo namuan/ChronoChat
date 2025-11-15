@@ -1,0 +1,225 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  Alert
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNotes } from '../context/NoteContext';
+import NoteItem from '../components/NoteItem';
+
+export default function MainScreen({ navigation }: any) {
+  const { notes, addNote } = useNotes();
+  const [inputText, setInputText] = useState('');
+  const [filterTag, setFilterTag] = useState<string | null>(null);
+
+  const extractTagsFromText = (text: string): { content: string; tags: string[] } => {
+    // Find all hashtags in the text (words starting with #)
+    const hashtagRegex = /#(\w+)/g;
+    const tags: string[] = [];
+    let match;
+    
+    while ((match = hashtagRegex.exec(text)) !== null) {
+      tags.push(match[1].toLowerCase());
+    }
+    
+    // Remove hashtags from content but keep the rest of the text
+    const content = text.replace(hashtagRegex, '').trim();
+    
+    return {
+      content,
+      tags: [...new Set(tags)] // Remove duplicates
+    };
+  };
+
+  const handleSendNote = async () => {
+    if (inputText.trim()) {
+      const { content, tags } = extractTagsFromText(inputText);
+      await addNote(content, tags);
+      setInputText('');
+    }
+  };
+
+  const getAllTags = () => {
+    const tagSet = new Set<string>();
+    notes.forEach(note => {
+      note.tags.forEach(tag => tagSet.add(tag));
+    });
+    return Array.from(tagSet).sort();
+  };
+
+  const displayNotes = filterTag 
+    ? notes.filter(note => note.tags.includes(filterTag))
+    : notes;
+
+  const sortedNotes = [...displayNotes].sort((a, b) => 
+    b.timestamp.getTime() - a.timestamp.getTime()
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
+      
+      {getAllTags().length > 0 && (
+        <View style={styles.tagsFilter}>
+          <TouchableOpacity
+            style={[styles.tagFilterButton, !filterTag && styles.tagFilterButtonActive]}
+            onPress={() => setFilterTag(null)}
+          >
+            <Text style={[styles.tagFilterText, !filterTag && styles.tagFilterTextActive]}>All</Text>
+          </TouchableOpacity>
+          {getAllTags().map(tag => (
+            <TouchableOpacity
+              key={tag}
+              style={[styles.tagFilterButton, filterTag === tag && styles.tagFilterButtonActive]}
+              onPress={() => setFilterTag(filterTag === tag ? null : tag)}
+            >
+              <Text style={[styles.tagFilterText, filterTag === tag && styles.tagFilterTextActive]}>#{tag}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+      
+      <FlatList
+        data={sortedNotes}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <NoteItem note={item} />}
+        contentContainerStyle={styles.notesList}
+        inverted
+        showsVerticalScrollIndicator={false}
+      />
+      
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.inputContainer}
+      >
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.input}
+            value={inputText}
+            onChangeText={setInputText}
+            placeholder="Type your note here..."
+            placeholderTextColor="#999"
+            multiline
+            maxLength={1000}
+          />
+          <TouchableOpacity
+            style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
+            onPress={handleSendNote}
+            disabled={!inputText.trim()}
+          >
+            <Text style={styles.sendButtonText}>Send</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+  },
+  header: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#212529',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#6c757d',
+    marginTop: 2,
+  },
+  tagsFilter: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  tagFilterButton: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+  },
+  tagFilterButtonActive: {
+    backgroundColor: '#007bff',
+    borderColor: '#007bff',
+  },
+  tagFilterText: {
+    color: '#6c757d',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  tagFilterTextActive: {
+    color: '#fff',
+  },
+  notesList: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+  inputContainer: {
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#e9ecef',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  input: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#212529',
+    maxHeight: 100,
+    marginRight: 8,
+  },
+  sendButton: {
+    backgroundColor: '#007bff',
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  sendButtonDisabled: {
+    backgroundColor: '#6c757d',
+  },
+  sendButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});

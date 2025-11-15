@@ -1,20 +1,26 @@
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import MainScreen from './src/screens/MainScreen';
+import TagTimelineScreen from './src/screens/TagTimelineScreen';
+import { NoteProvider } from './src/context/NoteContext';
+
+const Stack = createStackNavigator();
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <SafeAreaProvider>
+      <NoteProvider>
+        <NavigationContainer>
+          <StatusBar style="auto" />
+          <Stack.Navigator initialRouteName="Main" screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="Main" component={MainScreen} />
+            <Stack.Screen name="TagTimeline" component={TagTimelineScreen} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </NoteProvider>
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
