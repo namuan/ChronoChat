@@ -75,7 +75,9 @@ export default function MainScreen({ navigation }: any) {
   const dataWithSeparators = React.useMemo(() => {
     const out: ({ type: 'note'; data: Note } | { type: 'separator'; date: Date })[] = [];
     let lastDate: string | null = null;
-    sortedNotes.forEach(note => {
+    // walk from oldest → newest
+    const reversed = [...sortedNotes].reverse();
+    reversed.forEach(note => {
       const noteDate = note.timestamp.toDateString();
       if (noteDate !== lastDate) {
         out.push({ type: 'separator', date: note.timestamp });
@@ -83,7 +85,8 @@ export default function MainScreen({ navigation }: any) {
       }
       out.push({ type: 'note', data: note });
     });
-    return out;
+    // reverse again so newest is first (bottom when inverted)
+    return out.reverse();
   }, [sortedNotes]);
 
   return (
