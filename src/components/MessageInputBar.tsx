@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import ImagePreviewRow from './ImagePreviewRow';
 
+import { FileAttachment } from '../context/NoteContext';
+
 interface MessageInputBarProps {
   inputText: string;
   onChangeText: (text: string) => void;
@@ -17,6 +19,9 @@ interface MessageInputBarProps {
   selectedImages: string[];
   onPickImages: () => void;
   onRemoveImage: (index: number) => void;
+  selectedFiles: FileAttachment[];
+  onPickFiles: () => void;
+  onRemoveFile: (index: number) => void;
   sendDisabled?: boolean;
 }
 
@@ -27,6 +32,9 @@ export default function MessageInputBar({
   selectedImages,
   onPickImages,
   onRemoveImage,
+  selectedFiles,
+  onPickFiles,
+  onRemoveFile,
   sendDisabled = false,
 }: MessageInputBarProps) {
   return (
@@ -35,6 +43,18 @@ export default function MessageInputBar({
       style={styles.inputContainer}
     >
       <ImagePreviewRow images={selectedImages} onRemove={onRemoveImage} />
+      {selectedFiles.length > 0 && (
+        <View style={styles.filesRow}>
+          {selectedFiles.map((f, idx) => (
+            <View key={idx} style={styles.fileChip}>
+              <Text style={styles.fileName} numberOfLines={1}>{f.name}</Text>
+              <TouchableOpacity onPress={() => onRemoveFile(idx)}>
+                <Text style={styles.fileRemove}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
       <View style={styles.inputRow}>
         <TextInput
           style={styles.input}
@@ -48,6 +68,9 @@ export default function MessageInputBar({
         />
         <TouchableOpacity style={styles.cameraButton} onPress={onPickImages}>
           <Text style={styles.cameraButtonText}>📷</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.attachButton} onPress={onPickFiles}>
+          <Text style={styles.attachButtonText}>📎</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.sendButton, sendDisabled && styles.sendButtonDisabled]}
@@ -96,6 +119,44 @@ const styles = StyleSheet.create({
   cameraButtonText: {
     fontSize: 18,
     color: '#212529',
+  },
+  attachButton: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    marginRight: 8,
+  },
+  attachButtonText: {
+    fontSize: 18,
+    color: '#212529',
+  },
+  filesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingBottom: 8,
+  },
+  fileChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e9ecef',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginRight: 6,
+    marginBottom: 6,
+  },
+  fileName: {
+    fontSize: 13,
+    color: '#212529',
+    maxWidth: 120,
+    marginRight: 6,
+  },
+  fileRemove: {
+    fontSize: 14,
+    color: '#6c757d',
   },
   sendButton: {
     backgroundColor: '#007bff',

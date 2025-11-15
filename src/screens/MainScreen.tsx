@@ -14,13 +14,15 @@ import TagsFilter from '../components/TagsFilter';
 import DaySeparator from '../components/DaySeparator';
 import * as ImagePicker from 'expo-image-picker';
 import { Alert } from 'react-native';
-import { Note } from '../context/NoteContext';
+import { Note, FileAttachment } from '../context/NoteContext';
+import { pickFile, readFileAsBase64 } from '../utils/filePicker';
 
 export default function MainScreen({ navigation }: any) {
   const { notes, addNote } = useNotes();
   const [inputText, setInputText] = useState('');
   const [filterTag, setFilterTag] = useState<string | null>(null);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<FileAttachment[]>([]);
 
   const extractTagsFromText = (text: string): { content: string; tags: string[] } => {
     const hashtagRegex = /#(\w+)/g;
@@ -34,11 +36,12 @@ export default function MainScreen({ navigation }: any) {
   };
 
   const handleSendNote = async () => {
-    if (inputText.trim() || selectedImages.length > 0) {
+    if (inputText.trim() || selectedImages.length > 0 || selectedFiles.length > 0) {
       const { content, tags } = extractTagsFromText(inputText);
-      await addNote(content, tags, selectedImages);
+      await addNote(content, tags, selectedImages, selectedFiles);
       setInputText('');
       setSelectedImages([]);
+      setSelectedFiles([]);
     }
   };
 
@@ -61,6 +64,24 @@ export default function MainScreen({ navigation }: any) {
 
   const handleRemoveImage = (index: number) => {
     setSelectedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handlePickFiles = async () => {
+    const picked = await pickFile();
+    if (picked) {
+      const base64 = await readFileAsBase64(picked.uri);
+      const attachment: FileAttachment = {
+        uri: picked.uri,
+        name: picked.name,
+        type: picked.type,
+        data: base64,
+      };
+      setSelectedFiles(prev => [...prev, attachment]);
+    }
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const getAllTags = () => {
@@ -114,7 +135,10 @@ export default function MainScreen({ navigation }: any) {
           selectedImages={selectedImages}
           onPickImages={handlePickImages}
           onRemoveImage={handleRemoveImage}
-          sendDisabled={!inputText.trim() && selectedImages.length === 0}
+          sendDisabled={!inputText.trim() && selectedImages.length === 0 && selectedFiles.length === 0}
+          selectedFiles={selectedFiles}
+          onPickFiles={handlePickFiles}
+          onRemoveFile={handleRemoveFile}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>

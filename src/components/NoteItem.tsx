@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { useNotes } from '../context/NoteContext';
-import { Note } from '../context/NoteContext';
+import { Note, FileAttachment } from '../context/NoteContext';
 import ImageViewerModal from './ImageViewerModal';
 
 interface NoteItemProps {
@@ -35,6 +35,16 @@ export default function NoteItem({ note }: NoteItemProps) {
     setViewerUri(null);
   };
 
+  const fileIcon = (type: string) => {
+    if (type.startsWith('image/')) return '🖼️';
+    if (type.startsWith('video/')) return '🎞️';
+    if (type.startsWith('audio/')) return '🔊';
+    if (type.includes('pdf')) return '📄';
+    if (type.includes('sheet') || type.includes('excel')) return '📊';
+    if (type.includes('zip') || type.includes('rar')) return '🗜️';
+    return '📎';
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.noteContent}>
@@ -44,6 +54,16 @@ export default function NoteItem({ note }: NoteItemProps) {
               <TouchableOpacity key={index} onPress={() => handleImagePress(uri)}>
                 <Image source={{ uri }} style={styles.noteImage} />
               </TouchableOpacity>
+            ))}
+          </View>
+        )}
+        {note.files && note.files.length > 0 && (
+          <View style={styles.filesContainer}>
+            {note.files.map((f, idx) => (
+              <View key={idx} style={styles.fileChip}>
+                <Text style={styles.fileIcon}>{fileIcon(f.type)}</Text>
+                <Text style={styles.fileName} numberOfLines={1}>{f.name}</Text>
+              </View>
             ))}
           </View>
         )}
@@ -105,6 +125,30 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginRight: 8,
     marginBottom: 8,
+  },
+  filesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 8,
+  },
+  fileChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginRight: 6,
+    marginBottom: 4,
+  },
+  fileIcon: {
+    fontSize: 14,
+    marginRight: 4,
+  },
+  fileName: {
+    color: '#fff',
+    fontSize: 12,
+    maxWidth: 120,
   },
   tagsContainer: {
     flexDirection: 'row',

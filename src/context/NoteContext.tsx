@@ -1,17 +1,25 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+export interface FileAttachment {
+  uri: string;
+  name: string;
+  type: string;
+  data: string; // base64
+}
+
 export interface Note {
   id: string;
   content: string;
   timestamp: Date;
   tags: string[];
   images?: string[];
+  files?: FileAttachment[];
 }
 
 interface NoteContextType {
   notes: Note[];
-  addNote: (content: string, tags?: string[], images?: string[]) => Promise<void>;
+  addNote: (content: string, tags?: string[], images?: string[], files?: FileAttachment[]) => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
   getNotesByTag: (tag: string) => Note[];
 }
@@ -56,13 +64,14 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const addNote = async (content: string, tags: string[] = [], images: string[] = []) => {
+  const addNote = async (content: string, tags: string[] = [], images: string[] = [], files: FileAttachment[] = []) => {
     const newNote: Note = {
       id: Date.now().toString(),
       content,
       timestamp: new Date(),
       tags,
-      images
+      images,
+      files
     };
     
     const updatedNotes = [...notes, newNote];
