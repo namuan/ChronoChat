@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { useNotes } from '../context/NoteContext';
 
 interface TagsFilterProps {
   tags: string[];
@@ -8,25 +9,37 @@ interface TagsFilterProps {
 }
 
 export default function TagsFilter({ tags, selectedTag, onSelectTag }: TagsFilterProps) {
-  if (tags.length === 0) return null;
+  const { showTags, toggleShowTags } = useNotes();
 
   return (
     <View style={styles.tagsFilter}>
+      {showTags && tags.length > 0 && (
+        <>
+          <TouchableOpacity
+            style={[styles.tagFilterButton, !selectedTag && styles.tagFilterButtonActive]}
+            onPress={() => onSelectTag(null)}
+          >
+            <Text style={[styles.tagFilterText, !selectedTag && styles.tagFilterTextActive]}>All</Text>
+          </TouchableOpacity>
+          {tags.map(tag => (
+            <TouchableOpacity
+              key={tag}
+              style={[styles.tagFilterButton, selectedTag === tag && styles.tagFilterButtonActive]}
+              onPress={() => onSelectTag(selectedTag === tag ? null : tag)}
+            >
+              <Text style={[styles.tagFilterText, selectedTag === tag && styles.tagFilterTextActive]}>#{tag}</Text>
+            </TouchableOpacity>
+          ))}
+        </>
+      )}
       <TouchableOpacity
-        style={[styles.tagFilterButton, !selectedTag && styles.tagFilterButtonActive]}
-        onPress={() => onSelectTag(null)}
+        style={[styles.tagFilterButton, !showTags && styles.tagFilterButtonActive]}
+        onPress={toggleShowTags}
       >
-        <Text style={[styles.tagFilterText, !selectedTag && styles.tagFilterTextActive]}>All</Text>
+        <Text style={[styles.tagFilterText, !showTags && styles.tagFilterTextActive]}>
+          {showTags ? 'Hide Tags' : 'Show Tags'}
+        </Text>
       </TouchableOpacity>
-      {tags.map(tag => (
-        <TouchableOpacity
-          key={tag}
-          style={[styles.tagFilterButton, selectedTag === tag && styles.tagFilterButtonActive]}
-          onPress={() => onSelectTag(selectedTag === tag ? null : tag)}
-        >
-          <Text style={[styles.tagFilterText, selectedTag === tag && styles.tagFilterTextActive]}>#{tag}</Text>
-        </TouchableOpacity>
-      ))}
     </View>
   );
 }

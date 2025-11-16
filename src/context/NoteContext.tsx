@@ -22,6 +22,9 @@ interface NoteContextType {
   addNote: (content: string, tags?: string[], images?: string[], files?: FileAttachment[]) => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
   getNotesByTag: (tag: string) => Note[];
+  showTags: boolean;
+  setShowTags: (show: boolean) => Promise<void>;
+  toggleShowTags: () => Promise<void>;
 }
 
 const NoteContext = createContext<NoteContextType | undefined>(undefined);
@@ -36,9 +39,11 @@ export const useNotes = () => {
 
 export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notes, setNotes] = useState<Note[]>([]);
+  const [showTags, setShowTagsState] = useState<boolean>(true);
 
   useEffect(() => {
     loadNotes();
+    loadShowTags();
   }, []);
 
   const loadNotes = async () => {
@@ -61,6 +66,25 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await AsyncStorage.setItem('chronochat_notes', JSON.stringify(updatedNotes));
     } catch (error) {
       console.error('Error saving notes:', error);
+    }
+  };
+
+  const loadShowTags = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('chronochat_show_tags');
+      if (stored !== null) {
+        setShowTagsState(stored === 'true');
+      }
+    } catch (error) {
+      console.error('Error loading showTags:', error);
+    }
+  };
+
+  const saveShowTags = async (value: boolean) => {
+    try {
+      await AsyncStorage.setItem('chronochat_show_tags', value ? 'true' : 'false');
+    } catch (error) {
+      console.error('Error saving showTags:', error);
     }
   };
 
@@ -89,12 +113,26 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return notes.filter(note => note.tags.includes(tag));
   };
 
+  const setShowTags = async (show: boolean) => {
+    setShowTagsState(show);
+    await saveShowTags(show);
+  };
+
+  const toggleShowTags = async () => {
+    const next = !showTags;
+    setShowTagsState(next);
+    await saveShowTags(next);
+  };
+
   return (
     <NoteContext.Provider value={{
       notes,
       addNote,
       deleteNote,
-      getNotesByTag
+      getNotesByTag,
+      showTags,
+      setShowTags,
+      toggleShowTags
     }}>
       {children}
     </NoteContext.Provider>
