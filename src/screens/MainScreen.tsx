@@ -116,13 +116,8 @@ export default function MainScreen({ navigation }: any) {
       filtered = filtered.filter(note => note.tags.includes(filterTag));
     }
     
-    // Filter by selected date
-    filtered = filtered.filter(note => 
-      note.timestamp.toDateString() === selectedDate.toDateString()
-    );
-    
     return filtered;
-  }, [notes, filterTag, selectedDate]);
+  }, [notes, filterTag]);
 
   const sortedNotes = [...displayNotes].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
@@ -164,6 +159,20 @@ export default function MainScreen({ navigation }: any) {
         contentContainerStyle={styles.notesList}
         inverted
         showsVerticalScrollIndicator={false}
+        onViewableItemsChanged={({ viewableItems }) => {
+          if (viewableItems.length > 0) {
+            const topItem = viewableItems[0].item;
+            if (topItem.type === 'separator') {
+              setSelectedDate(topItem.date);
+            } else {
+              setSelectedDate(topItem.data.timestamp);
+            }
+          }
+        }}
+        viewabilityConfig={{
+          itemVisiblePercentThreshold: 50,
+          minimumViewTime: 300,
+        }}
       />
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
