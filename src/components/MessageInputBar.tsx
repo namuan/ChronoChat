@@ -97,13 +97,15 @@ export default function MessageInputBar({
         <TouchableOpacity style={styles.addButton} onPress={() => setShowActions(v => !v)}>
           <Text style={styles.addButtonText}>＋</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.sendButton, sendDisabled && styles.sendButtonDisabled]}
-          onPress={onSend}
-          disabled={sendDisabled}
-        >
-          <Text style={styles.sendButtonText}>Send</Text>
-        </TouchableOpacity>
+        {inputText.trim().length > 0 && (
+          <TouchableOpacity
+            style={[styles.sendButton, sendDisabled && styles.sendButtonDisabled]}
+            onPress={onSend}
+            disabled={sendDisabled}
+          >
+            <Text style={styles.sendButtonText}>Send</Text>
+          </TouchableOpacity>
+        )}
       </View>
       {showActions && (
         <View style={styles.actionsRow}>

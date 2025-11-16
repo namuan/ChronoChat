@@ -177,7 +177,7 @@ export default function MainScreen({ navigation }: any) {
           selectedImages={selectedImages}
           onPickImages={handlePickImages}
           onRemoveImage={handleRemoveImage}
-          sendDisabled={!inputText.trim() && selectedImages.length === 0 && selectedFiles.length === 0}
+          sendDisabled={!inputText.trim()}
           selectedFiles={selectedFiles}
           onPickFiles={handlePickFiles}
           onRemoveFile={handleRemoveFile}
