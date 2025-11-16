@@ -5,6 +5,8 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
+  Text,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNotes } from '../context/NoteContext';
@@ -13,18 +15,20 @@ import MessageInputBar from '../components/MessageInputBar';
 import TagsFilter from '../components/TagsFilter';
 import DaySeparator from '../components/DaySeparator';
 import CalendarNavigator from '../components/CalendarNavigator';
+import ConfigurationDialog from '../components/ConfigurationDialog';
 import * as ImagePicker from 'expo-image-picker';
 import { Alert } from 'react-native';
 import { Note, FileAttachment } from '../context/NoteContext';
 import { pickFile, readFileAsBase64 } from '../utils/filePicker';
 
 export default function MainScreen({ navigation }: any) {
-  const { notes, addNote } = useNotes();
+  const { notes, addNote, showTags } = useNotes();
   const [inputText, setInputText] = useState('');
   const [filterTag, setFilterTag] = useState<string | null>(null);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<FileAttachment[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [configDialogVisible, setConfigDialogVisible] = useState(false);
 
   const extractTagsFromText = (text: string): { content: string; tags: string[] } => {
     const hashtagRegex = /#(\w+)/g;
@@ -140,12 +144,26 @@ export default function MainScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <CalendarNavigator
-        selectedDate={selectedDate}
-        onDateChange={setSelectedDate}
-        availableDates={availableDates}
+      <View style={styles.headerContainer}>
+        <View style={styles.calendarContainer}>
+          <CalendarNavigator
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+            availableDates={availableDates}
+          />
+        </View>
+        <TouchableOpacity 
+          style={styles.configButton} 
+          onPress={() => setConfigDialogVisible(true)}
+        >
+          <Text style={styles.configButtonText}>⚙️</Text>
+        </TouchableOpacity>
+      </View>
+      {showTags && <TagsFilter tags={getAllTags()} selectedTag={filterTag} onSelectTag={setFilterTag} />}
+      <ConfigurationDialog 
+        visible={configDialogVisible} 
+        onClose={() => setConfigDialogVisible(false)} 
       />
-      <TagsFilter tags={getAllTags()} selectedTag={filterTag} onSelectTag={setFilterTag} />
       <FlatList
         data={dataWithSeparators}
         keyExtractor={(item, idx) => (item.type === 'note' ? item.data.id : item.date.toISOString()) + idx}
@@ -200,6 +218,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+  },
+  calendarContainer: {
+    flex: 1,
+  },
+  configButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginLeft: 'auto',
+  },
+  configButtonText: {
+    fontSize: 20,
   },
   notesList: {
     paddingHorizontal: 16,
