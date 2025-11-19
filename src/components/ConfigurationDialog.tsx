@@ -9,6 +9,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { useNotes } from '../context/NoteContext';
+import { createBackup, restoreBackup } from '../utils/backupService';
+import { Alert } from 'react-native';
 
 interface ConfigurationDialogProps {
   visible: boolean;
@@ -16,10 +18,45 @@ interface ConfigurationDialogProps {
 }
 
 export default function ConfigurationDialog({ visible, onClose }: ConfigurationDialogProps) {
-  const { showTags, setShowTags } = useNotes();
+  const { showTags, setShowTags, notes, replaceAllNotes } = useNotes();
 
   const toggleTagsVisibility = (value: boolean) => {
     setShowTags(value);
+  };
+
+  const handleBackup = async () => {
+    try {
+      await createBackup(notes);
+    } catch (error) {
+      Alert.alert('Backup Failed', error instanceof Error ? error.message : 'Unknown error occurred');
+    }
+  };
+
+  const handleRestore = async () => {
+    Alert.alert(
+      'Restore Backup',
+      'This will replace all your current notes with the backup data. Are you sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Restore',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const restoredNotes = await restoreBackup();
+              await replaceAllNotes(restoredNotes);
+              Alert.alert('Success', 'Notes restored successfully');
+              onClose();
+            } catch (error) {
+              if (error instanceof Error && error.message === 'Restore cancelled') {
+                return;
+              }
+              Alert.alert('Restore Failed', error instanceof Error ? error.message : 'Unknown error occurred');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -37,7 +74,7 @@ export default function ConfigurationDialog({ visible, onClose }: ConfigurationD
               <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
           </View>
-          
+
           <ScrollView style={styles.dialogContent}>
             <View style={styles.settingItem}>
               <View style={styles.settingInfo}>
@@ -53,8 +90,22 @@ export default function ConfigurationDialog({ visible, onClose }: ConfigurationD
                 thumbColor={showTags ? '#fff' : '#f4f3f4'}
               />
             </View>
+
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Data Management</Text>
+            </View>
+
+            <TouchableOpacity style={styles.actionButton} onPress={handleBackup}>
+              <Text style={styles.actionButtonText}>Backup to File / iCloud</Text>
+              <Text style={styles.actionButtonIcon}>☁️</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.actionButton, styles.dangerButton]} onPress={handleRestore}>
+              <Text style={[styles.actionButtonText, styles.dangerButtonText]}>Restore from File</Text>
+              <Text style={styles.actionButtonIcon}>🔄</Text>
+            </TouchableOpacity>
           </ScrollView>
-          
+
           <View style={styles.dialogFooter}>
             <TouchableOpacity style={styles.doneButton} onPress={onClose}>
               <Text style={styles.doneButtonText}>Done</Text>
@@ -153,5 +204,41 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  sectionHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 8,
+    backgroundColor: '#f8f9fa',
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6c757d',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f8f9fa',
+    backgroundColor: '#fff',
+  },
+  actionButtonText: {
+    fontSize: 16,
+    color: '#212529',
+  },
+  actionButtonIcon: {
+    fontSize: 18,
+  },
+  dangerButton: {
+    marginTop: 0,
+  },
+  dangerButtonText: {
+    color: '#dc3545',
   },
 });

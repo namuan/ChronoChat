@@ -25,6 +25,7 @@ interface NoteContextType {
   showTags: boolean;
   setShowTags: (show: boolean) => Promise<void>;
   toggleShowTags: () => Promise<void>;
+  replaceAllNotes: (newNotes: Note[]) => Promise<void>;
 }
 
 const NoteContext = createContext<NoteContextType | undefined>(undefined);
@@ -97,7 +98,7 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       images,
       files
     };
-    
+
     const updatedNotes = [...notes, newNote];
     setNotes(updatedNotes);
     await saveNotes(updatedNotes);
@@ -124,6 +125,11 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await saveShowTags(next);
   };
 
+  const replaceAllNotes = async (newNotes: Note[]) => {
+    setNotes(newNotes);
+    await saveNotes(newNotes);
+  };
+
   return (
     <NoteContext.Provider value={{
       notes,
@@ -132,7 +138,8 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       getNotesByTag,
       showTags,
       setShowTags,
-      toggleShowTags
+      toggleShowTags,
+      replaceAllNotes
     }}>
       {children}
     </NoteContext.Provider>
