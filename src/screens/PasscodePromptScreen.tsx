@@ -141,12 +141,13 @@ export default function PasscodePromptScreen({ onPasscodeVerified }: PasscodePro
                 placeholder="Enter Passcode"
                 value={passcode}
                 onChangeText={setPasscode}
-                keyboardType="number-pad"
+                keyboardType="numeric"
                 secureTextEntry={true}
                 maxLength={6}
                 autoFocus={true}
                 textAlign="center"
                 onSubmitEditing={handlePasscodeSubmit}
+                returnKeyType="done"
               />
               
               <View style={styles.passcodeIndicators}>
