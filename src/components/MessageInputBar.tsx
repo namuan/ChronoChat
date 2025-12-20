@@ -93,6 +93,9 @@ export default function MessageInputBar({
           multiline
           maxLength={1000}
           editable={true}
+          autoCorrect={true}
+          autoCapitalize="sentences"
+          textContentType="none"
         />
         <TouchableOpacity style={styles.addButton} onPress={() => setShowActions(v => !v)}>
           <Text style={styles.addButtonText}>＋</Text>
