@@ -72,6 +72,7 @@ StrflowIOS/
 ## iOS-Specific Features
 
 - Native keyboard handling with KeyboardAvoidingView
+- Autocomplete and autocorrect support for text input
 - iOS-style animations and transitions
 - Portrait-only orientation lock
 - Optimized for iPhone and iPad
