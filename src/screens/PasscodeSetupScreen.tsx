@@ -76,11 +76,13 @@ export default function PasscodeSetupScreen({ onSetupComplete }: PasscodeSetupSc
                 placeholder={isConfirming ? 'Confirm Passcode' : 'Enter Passcode'}
                 value={isConfirming ? confirmPasscode : passcode}
                 onChangeText={isConfirming ? setConfirmPasscode : setPasscode}
-                keyboardType="number-pad"
+                keyboardType="numeric"
                 secureTextEntry={true}
                 maxLength={6}
                 autoFocus={true}
                 textAlign="center"
+                onSubmitEditing={isConfirming ? handleConfirmPasscode : handleFirstPasscodeSubmit}
+                returnKeyType="done"
               />
               
               <View style={styles.passcodeIndicators}>
