@@ -60,7 +60,14 @@ export default function NoteItem({ note }: NoteItemProps) {
           <View style={styles.imagesContainer}>
             {note.images.map((uri, index) => (
               <TouchableOpacity key={index} onPress={() => handleImagePress(uri)}>
-                <Image source={{ uri }} style={styles.noteImage} />
+                <Image
+                  source={{ uri }}
+                  style={styles.noteImage}
+                  onError={(e) => {
+                    const error = (e as any)?.nativeEvent?.error;
+                    console.warn('[images] Image failed to render', { uri, error });
+                  }}
+                />
               </TouchableOpacity>
             ))}
           </View>

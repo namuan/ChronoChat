@@ -13,12 +13,14 @@ interface CalendarNavigatorProps {
   selectedDate: Date;
   onDateChange: (date: Date) => void;
   availableDates: Date[];
+  messageCountsByDate: Record<string, number>;
 }
 
 const CalendarNavigator: React.FC<CalendarNavigatorProps> = ({
   selectedDate,
   onDateChange,
   availableDates,
+  messageCountsByDate,
 }) => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarCursor, setCalendarCursor] = useState(
@@ -65,9 +67,7 @@ const CalendarNavigator: React.FC<CalendarNavigatorProps> = ({
   };
 
   const hasMessagesOnDate = (date: Date) => {
-    return availableDates.some(d => 
-      d.toDateString() === date.toDateString()
-    );
+    return (messageCountsByDate[date.toDateString()] ?? 0) > 0;
   };
 
   const navigateDay = (direction: 'prev' | 'next') => {
@@ -157,7 +157,7 @@ const CalendarNavigator: React.FC<CalendarNavigatorProps> = ({
         >
           <Text style={styles.dateButtonText}>{formatDate(selectedDate)}</Text>
           <Text style={styles.dateButtonSubtext}>
-            {availableDates.filter(d => d.toDateString() === selectedDate.toDateString()).length} messages
+            {messageCountsByDate[selectedDate.toDateString()] ?? 0} messages
           </Text>
         </TouchableOpacity>
 

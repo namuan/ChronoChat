@@ -5,7 +5,7 @@ import { Note } from '../context/NoteContext';
 import { Platform } from 'react-native';
 
 export interface BackupNote extends Omit<Note, 'images'> {
-    images?: { uri: string; base64: string }[];
+    images?: { uri: string; base64: string; mimeType?: string }[];
 }
 
 export interface BackupData {
@@ -16,26 +16,49 @@ export interface BackupData {
 
 const BACKUP_VERSION = 2;
 
+const normalizeRemoteUri = (uri: string) => uri.trim().replace(/^`+|`+$/g, '');
+
+const getMimeTypeFromUri = (uri: string) => {
+    const cleaned = uri.split('?')[0].toLowerCase();
+    if (cleaned.endsWith('.png')) return 'image/png';
+    if (cleaned.endsWith('.webp')) return 'image/webp';
+    if (cleaned.endsWith('.heic')) return 'image/heic';
+    if (cleaned.endsWith('.heif')) return 'image/heif';
+    return 'image/jpeg';
+};
+
+const parseDataUri = (uri: string) => {
+    const match = uri.match(/^data:([^;]+);base64,(.*)$/);
+    if (!match) return null;
+    return { mimeType: match[1], base64: match[2] };
+};
+
 export const createBackup = async (notes: Note[]): Promise<void> => {
     try {
         // Process notes to embed images
         const processedNotes: BackupNote[] = await Promise.all(
             notes.map(async (note) => {
-                let embeddedImages: { uri: string; base64: string }[] = [];
+                let embeddedImages: { uri: string; base64: string; mimeType?: string }[] = [];
 
                 if (note.images && note.images.length > 0) {
                     embeddedImages = await Promise.all(
                         note.images.map(async (uri) => {
+                            const normalizedUri = normalizeRemoteUri(uri);
+                            if (normalizedUri.startsWith('data:')) {
+                                const parsed = parseDataUri(normalizedUri);
+                                if (!parsed) return { uri: normalizedUri, base64: '' };
+                                return { uri: normalizedUri, base64: parsed.base64, mimeType: parsed.mimeType };
+                            }
                             try {
-                                const base64 = await FileSystem.readAsStringAsync(uri, {
+                                const base64 = await FileSystem.readAsStringAsync(normalizedUri, {
                                     encoding: 'base64',
                                 });
-                                return { uri, base64 };
+                                return { uri: normalizedUri, base64, mimeType: getMimeTypeFromUri(normalizedUri) };
                             } catch (e) {
-                                console.warn(`Failed to read image for backup: ${uri}`, e);
+                                console.warn(`Failed to read image for backup: ${normalizedUri}`, e);
                                 // Return just the URI if read fails, though it won't be useful on another device
                                 // We'll filter these out or handle them gracefully
-                                return { uri, base64: '' };
+                                return { uri: normalizedUri, base64: '' };
                             }
                         })
                     );
@@ -112,13 +135,6 @@ export const restoreBackup = async (): Promise<Note[]> => {
             throw new Error('Invalid backup data: missing notes array');
         }
 
-        // Ensure images directory exists
-        const imagesDir = (FileSystem.documentDirectory || FileSystem.cacheDirectory) + 'imported_images/';
-        const dirInfo = await FileSystem.getInfoAsync(imagesDir);
-        if (!dirInfo.exists) {
-            await FileSystem.makeDirectoryAsync(imagesDir, { intermediates: true });
-        }
-
         // Process notes to restore images
         const restoredNotes: Note[] = await Promise.all(
             backupNotes.map(async (note: any) => {
@@ -127,22 +143,10 @@ export const restoreBackup = async (): Promise<Note[]> => {
                 // Handle embedded images (Version 2+)
                 if (note.images && Array.isArray(note.images) && note.images.length > 0 && typeof note.images[0] === 'object') {
                     restoredImages = await Promise.all(
-                        note.images.map(async (img: { uri: string; base64: string }) => {
+                        note.images.map(async (img: { uri: string; base64: string; mimeType?: string }) => {
                             if (!img.base64) return img.uri; // Fallback if no data
-
-                            // Create a unique filename
-                            const filename = `restored_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
-                            const newPath = imagesDir + filename;
-
-                            try {
-                                await FileSystem.writeAsStringAsync(newPath, img.base64, {
-                                    encoding: 'base64',
-                                });
-                                return newPath;
-                            } catch (e) {
-                                console.warn('Failed to write restored image:', e);
-                                return img.uri; // Keep original URI (likely broken but better than nothing)
-                            }
+                            const mimeType = img.mimeType || (img.uri?.startsWith('data:') ? parseDataUri(img.uri)?.mimeType : undefined) || 'image/jpeg';
+                            return `data:${mimeType};base64,${img.base64}`;
                         })
                     );
                 }

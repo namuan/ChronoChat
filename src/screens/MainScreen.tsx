@@ -104,14 +104,6 @@ export default function MainScreen({ navigation }: any) {
     return Array.from(tagSet).sort();
   };
 
-  const availableDates = useMemo(() => {
-    const dateSet = new Set<string>();
-    notes.forEach(note => {
-      dateSet.add(note.timestamp.toDateString());
-    });
-    return Array.from(dateSet).map(dateStr => new Date(dateStr)).sort((a, b) => b.getTime() - a.getTime());
-  }, [notes]);
-
   const displayNotes = useMemo(() => {
     let filtered = notes;
     
@@ -122,6 +114,15 @@ export default function MainScreen({ navigation }: any) {
     
     return filtered;
   }, [notes, filterTag]);
+
+  const messageCountsByDate = useMemo(() => {
+    const counts: Record<string, number> = {};
+    displayNotes.forEach(note => {
+      const key = note.timestamp.toDateString();
+      counts[key] = (counts[key] ?? 0) + 1;
+    });
+    return counts;
+  }, [displayNotes]);
 
   const sortedNotes = [...displayNotes].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
@@ -142,6 +143,12 @@ export default function MainScreen({ navigation }: any) {
     return out.reverse();
   }, [sortedNotes]);
 
+  const availableDates = useMemo(() => {
+    return Object.keys(messageCountsByDate)
+      .map(dateStr => new Date(dateStr))
+      .sort((a, b) => b.getTime() - a.getTime());
+  }, [messageCountsByDate]);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
@@ -150,6 +157,7 @@ export default function MainScreen({ navigation }: any) {
             selectedDate={selectedDate}
             onDateChange={setSelectedDate}
             availableDates={availableDates}
+            messageCountsByDate={messageCountsByDate}
           />
         </View>
         <TouchableOpacity 
