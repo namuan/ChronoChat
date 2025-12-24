@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,10 @@ const CalendarNavigator: React.FC<CalendarNavigatorProps> = ({
   availableDates,
 }) => {
   const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarCursor, setCalendarCursor] = useState(
+    new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1)
+  );
+  const [showYearPicker, setShowYearPicker] = useState(false);
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
@@ -72,6 +76,29 @@ const CalendarNavigator: React.FC<CalendarNavigatorProps> = ({
     onDateChange(newDate);
   };
 
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    setCalendarCursor(prev => {
+      const next = new Date(prev.getFullYear(), prev.getMonth(), 1);
+      next.setMonth(next.getMonth() + (direction === 'next' ? 1 : -1));
+      return next;
+    });
+  };
+
+  const yearRange = useMemo(() => {
+    const years = availableDates.map(d => d.getFullYear());
+    const fallbackYear = selectedDate.getFullYear();
+    const minYear = years.length ? Math.min(...years, fallbackYear) : fallbackYear;
+    const maxYear = years.length ? Math.max(...years, fallbackYear) : fallbackYear;
+    const startYear = minYear - 5;
+    const endYear = maxYear + 5;
+    return Array.from({ length: endYear - startYear + 1 }, (_, idx) => startYear + idx);
+  }, [availableDates, selectedDate]);
+
+  const selectYear = (year: number) => {
+    setCalendarCursor(prev => new Date(year, prev.getMonth(), 1));
+    setShowYearPicker(false);
+  };
+
   const renderCalendarDay = ({ item: day }: { item: Date | null }) => {
     if (!day) {
       return <View style={styles.calendarDayEmpty} />;
@@ -107,7 +134,7 @@ const CalendarNavigator: React.FC<CalendarNavigatorProps> = ({
     );
   };
 
-  const days = getDaysInMonth(selectedDate);
+  const days = getDaysInMonth(calendarCursor);
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
@@ -122,7 +149,11 @@ const CalendarNavigator: React.FC<CalendarNavigatorProps> = ({
 
         <TouchableOpacity
           style={styles.dateButton}
-          onPress={() => setShowCalendar(true)}
+          onPress={() => {
+            setCalendarCursor(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
+            setShowYearPicker(false);
+            setShowCalendar(true);
+          }}
         >
           <Text style={styles.dateButtonText}>{formatDate(selectedDate)}</Text>
           <Text style={styles.dateButtonSubtext}>
@@ -142,39 +173,89 @@ const CalendarNavigator: React.FC<CalendarNavigatorProps> = ({
         visible={showCalendar}
         transparent
         animationType="fade"
-        onRequestClose={() => setShowCalendar(false)}
+        onRequestClose={() => {
+          setShowCalendar(false);
+          setShowYearPicker(false);
+        }}
       >
         <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
-          onPress={() => setShowCalendar(false)}
+          onPress={() => {
+            setShowCalendar(false);
+            setShowYearPicker(false);
+          }}
         >
           <View style={styles.calendarContainer}>
             <View style={styles.calendarHeader}>
-              <Text style={styles.calendarTitle}>{formatMonthYear(selectedDate)}</Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setShowCalendar(false)}
-              >
-                <Text style={styles.closeButtonText}>✕</Text>
-              </TouchableOpacity>
+              <View style={styles.calendarHeaderLeft}>
+                <TouchableOpacity
+                  style={styles.calendarNavButton}
+                  onPress={() => navigateMonth('prev')}
+                >
+                  <Text style={styles.calendarNavButtonText}>‹</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.calendarTitleButton}
+                  onPress={() => setShowYearPicker(prev => !prev)}
+                >
+                  <Text style={styles.calendarTitle}>{formatMonthYear(calendarCursor)}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.calendarNavButton}
+                  onPress={() => navigateMonth('next')}
+                >
+                  <Text style={styles.calendarNavButtonText}>›</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <View style={styles.weekDaysRow}>
-              {weekDays.map(day => (
-                <Text key={day} style={styles.weekDayText}>
-                  {day}
-                </Text>
-              ))}
-            </View>
+            {showYearPicker ? (
+              <FlatList
+                data={yearRange}
+                keyExtractor={(year) => year.toString()}
+                style={styles.yearList}
+                contentContainerStyle={styles.yearListContent}
+                initialScrollIndex={Math.max(0, yearRange.indexOf(calendarCursor.getFullYear()) - 3)}
+                getItemLayout={(_, index) => ({
+                  length: 44,
+                  offset: 44 * index,
+                  index,
+                })}
+                renderItem={({ item: year }) => {
+                  const isSelected = year === calendarCursor.getFullYear();
+                  return (
+                    <TouchableOpacity
+                      style={[styles.yearRow, isSelected && styles.yearRowSelected]}
+                      onPress={() => selectYear(year)}
+                    >
+                      <Text style={[styles.yearText, isSelected && styles.yearTextSelected]}>{year}</Text>
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            ) : (
+              <>
+                <View style={styles.weekDaysRow}>
+                  {weekDays.map(day => (
+                    <Text key={day} style={styles.weekDayText}>
+                      {day}
+                    </Text>
+                  ))}
+                </View>
 
-            <FlatList
-              data={days}
-              renderItem={renderCalendarDay}
-              keyExtractor={(item, index) => index.toString()}
-              numColumns={7}
-              scrollEnabled={false}
-            />
+                <FlatList
+                  data={days}
+                  renderItem={renderCalendarDay}
+                  keyExtractor={(item, index) => index.toString()}
+                  numColumns={7}
+                  scrollEnabled={false}
+                  extraData={calendarCursor}
+                />
+              </>
+            )}
           </View>
         </TouchableOpacity>
       </Modal>
@@ -258,22 +339,63 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  calendarTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#212529',
+  calendarHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
-  closeButton: {
+  calendarNavButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
     backgroundColor: '#f8f9fa',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#dee2e6',
   },
-  closeButtonText: {
+  calendarNavButtonText: {
+    fontSize: 18,
+    color: '#495057',
+    fontWeight: '700',
+  },
+  calendarTitleButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  calendarTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#212529',
+  },
+  yearList: {
+    maxHeight: 44 * 8,
+  },
+  yearListContent: {
+    paddingVertical: 4,
+  },
+  yearRow: {
+    height: 44,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    marginVertical: 4,
+  },
+  yearRowSelected: {
+    backgroundColor: '#007bff',
+    borderColor: '#007bff',
+  },
+  yearText: {
     fontSize: 16,
-    color: '#6c757d',
+    color: '#212529',
+    fontWeight: '600',
+  },
+  yearTextSelected: {
+    color: '#fff',
   },
   weekDaysRow: {
     flexDirection: 'row',
