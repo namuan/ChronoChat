@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system/legacy';
 
 export interface FileAttachment {
   uri: string;
@@ -42,6 +43,69 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [notes, setNotes] = useState<Note[]>([]);
   const [showTags, setShowTagsState] = useState<boolean>(true);
 
+  const getImagesDir = () => {
+    const base = FileSystem.documentDirectory ?? FileSystem.cacheDirectory ?? '';
+    return base ? base + 'images/' : '';
+  };
+
+  const ensureImagesDir = async () => {
+    const dir = getImagesDir();
+    if (!dir) return;
+    const dirInfo = await FileSystem.getInfoAsync(dir);
+    if (!dirInfo.exists) {
+      await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
+    }
+  };
+
+  const getUriExtension = (uri: string) => {
+    const cleaned = uri.split('?')[0];
+    const lastDot = cleaned.lastIndexOf('.');
+    if (lastDot === -1) return 'jpg';
+    const ext = cleaned.slice(lastDot + 1).toLowerCase();
+    if (!ext || ext.length > 6) return 'jpg';
+    return ext;
+  };
+
+  const persistImageUri = async (uri: string) => {
+    const imagesDir = getImagesDir();
+    const docDir = FileSystem.documentDirectory ?? '';
+    if (!imagesDir || !docDir) return uri;
+    if (uri.startsWith(imagesDir) || uri.startsWith(docDir + 'imported_images/')) return uri;
+
+    try {
+      const info = await FileSystem.getInfoAsync(uri);
+      if (!info.exists) return uri;
+
+      await ensureImagesDir();
+      const ext = getUriExtension(uri);
+      const filename = `img_${Date.now()}_${Math.random().toString(36).slice(2, 10)}.${ext}`;
+      const dest = imagesDir + filename;
+      await FileSystem.copyAsync({ from: uri, to: dest });
+      return dest;
+    } catch {
+      return uri;
+    }
+  };
+
+  const migrateNotesImages = async (parsedNotes: Note[]) => {
+    let changed = false;
+    const migrated = await Promise.all(
+      parsedNotes.map(async (note) => {
+        if (!note.images || note.images.length === 0) return note;
+        const nextImages = await Promise.all(note.images.map(persistImageUri));
+        const same =
+          nextImages.length === note.images.length &&
+          nextImages.every((u, idx) => u === note.images?.[idx]);
+        if (!same) changed = true;
+        return { ...note, images: nextImages };
+      })
+    );
+    if (changed) {
+      await saveNotes(migrated);
+    }
+    return migrated;
+  };
+
   useEffect(() => {
     loadNotes();
     loadShowTags();
@@ -51,11 +115,12 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const storedNotes = await AsyncStorage.getItem('chronochat_notes');
       if (storedNotes) {
-        const parsedNotes = JSON.parse(storedNotes).map((note: any) => ({
+        const parsedNotes: Note[] = JSON.parse(storedNotes).map((note: any) => ({
           ...note,
-          timestamp: new Date(note.timestamp)
+          timestamp: new Date(note.timestamp),
         }));
-        setNotes(parsedNotes);
+        const migrated = await migrateNotesImages(parsedNotes);
+        setNotes(migrated);
       }
     } catch (error) {
       console.error('Error loading notes:', error);
@@ -90,12 +155,13 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addNote = async (content: string, tags: string[] = [], images: string[] = [], files: FileAttachment[] = []) => {
+    const persistedImages = await Promise.all(images.map(persistImageUri));
     const newNote: Note = {
       id: Date.now().toString(),
       content,
       timestamp: new Date(),
       tags,
-      images,
+      images: persistedImages,
       files
     };
 
