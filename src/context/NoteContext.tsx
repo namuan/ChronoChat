@@ -44,6 +44,7 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [showTags, setShowTagsState] = useState<boolean>(true);
 
   const normalizeRemoteUri = (uri: string) => uri.trim().replace(/^`+|`+$/g, '');
+  const ATTACHMENTS_DIR = (FileSystem.documentDirectory || FileSystem.cacheDirectory || '') + 'attachments/';
 
   const getMimeTypeFromUri = (uri: string) => {
     const cleaned = uri.split('?')[0].toLowerCase();
@@ -83,7 +84,33 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const migrateNotesImages = async (parsedNotes: Note[]) => {
+  const sanitizeFileName = (name: string) => {
+    const cleaned = (name || '').split(/[\\/]/).pop() || `attachment_${Date.now()}`;
+    return cleaned.replace(/[^a-zA-Z0-9._-]/g, '_');
+  };
+
+  const ensureAttachmentsDir = async () => {
+    if (!ATTACHMENTS_DIR) return;
+    const info = await FileSystem.getInfoAsync(ATTACHMENTS_DIR);
+    if (!info.exists) {
+      await FileSystem.makeDirectoryAsync(ATTACHMENTS_DIR, { intermediates: true });
+    }
+  };
+
+  const persistAttachment = async (attachment: FileAttachment, noteId: string, index: number): Promise<FileAttachment> => {
+    if (!attachment?.data) return attachment;
+    if (!ATTACHMENTS_DIR) return attachment;
+
+    await ensureAttachmentsDir();
+    const safeName = sanitizeFileName(attachment.name);
+    const unique = Math.random().toString(36).slice(2, 8);
+    const fileUri = `${ATTACHMENTS_DIR}${noteId}_${index}_${unique}_${safeName}`;
+
+    await FileSystem.writeAsStringAsync(fileUri, attachment.data, { encoding: 'base64' });
+    return { ...attachment, uri: fileUri };
+  };
+
+  const migrateNotesImages = async (parsedNotes: Note[], options?: { save?: boolean }) => {
     let changed = false;
     let encodedCount = 0;
     const migrated = await Promise.all(
@@ -105,19 +132,69 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const allImageUris = migrated.flatMap(n => n.images ?? []);
     const dataUriCount = allImageUris.filter(u => typeof u === 'string' && u.startsWith('data:')).length;
 
-    if (changed) {
+    if (changed && (options?.save ?? true)) {
       console.log('[images] Migrated note images on load', {
         notes: migrated.length,
         encodedCount,
         dataUriCount,
       });
       await saveNotes(migrated);
-    } else {
+    } else if (!changed) {
       console.log('[images] No image migration needed on load', {
         notes: migrated.length,
         encodedCount,
         dataUriCount,
       });
+    }
+    return migrated;
+  };
+
+  const migrateNotesFiles = async (parsedNotes: Note[], options?: { save?: boolean }) => {
+    let changed = false;
+    const migrated: Note[] = await Promise.all(
+      parsedNotes.map(async (note) => {
+        if (!note.files || note.files.length === 0) return note;
+
+        const nextFiles = await Promise.all(
+          note.files.map(async (f, idx) => {
+            const normalizedUri = normalizeRemoteUri(f.uri || '');
+            const hasData = typeof f.data === 'string' && f.data.length > 0;
+            const isPersistent = !!ATTACHMENTS_DIR && !!normalizedUri && normalizedUri.startsWith(ATTACHMENTS_DIR);
+
+            if (hasData && !isPersistent) {
+              const next = await persistAttachment(f, note.id, idx);
+              if (next.uri !== f.uri) changed = true;
+              return next;
+            }
+
+            if (normalizedUri) {
+              try {
+                const info = await FileSystem.getInfoAsync(normalizedUri);
+                if (info.exists) return { ...f, uri: normalizedUri };
+              } catch {
+              }
+            }
+
+            if (hasData) {
+              const next = await persistAttachment(f, note.id, idx);
+              if (next.uri !== f.uri) changed = true;
+              return next;
+            }
+
+            return { ...f, uri: normalizedUri || f.uri };
+          })
+        );
+
+        const same =
+          nextFiles.length === note.files.length &&
+          nextFiles.every((f, idx) => f.uri === note.files?.[idx]?.uri);
+        if (!same) changed = true;
+        return { ...note, files: nextFiles };
+      })
+    );
+
+    if (changed && (options?.save ?? true)) {
+      await saveNotes(migrated);
     }
     return migrated;
   };
@@ -142,7 +219,8 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
           totalImages,
           sampleUri,
         });
-        const migrated = await migrateNotesImages(parsedNotes);
+        const migratedImages = await migrateNotesImages(parsedNotes);
+        const migrated = await migrateNotesFiles(migratedImages);
         setNotes(migrated);
       }
     } catch (error) {
@@ -178,6 +256,7 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addNote = async (content: string, tags: string[] = [], images: string[] = [], files: FileAttachment[] = []) => {
+    const id = Date.now().toString();
     if (images.length > 0) {
       console.log('[images] addNote called with images', {
         count: images.length,
@@ -193,13 +272,14 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
         sampleEncodedUri: encodedImages[0]?.slice(0, 48),
       });
     }
+    const persistedFiles = await Promise.all(files.map((f, idx) => persistAttachment(f, id, idx)));
     const newNote: Note = {
-      id: Date.now().toString(),
+      id,
       content,
       timestamp: new Date(),
       tags,
       images: encodedImages,
-      files
+      files: persistedFiles
     };
 
     const updatedNotes = [...notes, newNote];
@@ -229,8 +309,10 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const replaceAllNotes = async (newNotes: Note[]) => {
-    setNotes(newNotes);
-    await saveNotes(newNotes);
+    const migratedImages = await migrateNotesImages(newNotes, { save: false });
+    const migrated = await migrateNotesFiles(migratedImages, { save: false });
+    setNotes(migrated);
+    await saveNotes(migrated);
   };
 
   return (
