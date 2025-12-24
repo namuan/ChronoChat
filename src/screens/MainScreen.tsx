@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   View,
   FlatList,
@@ -7,6 +7,7 @@ import {
   Platform,
   TouchableOpacity,
   Text,
+  ViewToken,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNotes } from '../context/NoteContext';
@@ -149,6 +150,30 @@ export default function MainScreen({ navigation }: any) {
       .sort((a, b) => b.getTime() - a.getTime());
   }, [messageCountsByDate]);
 
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      if (viewableItems.length === 0) return;
+
+      const withIndex = viewableItems.filter((token): token is ViewToken & { index: number } => {
+        return typeof token.index === 'number';
+      });
+      if (withIndex.length === 0) return;
+
+      const minIndex = withIndex.reduce((min, current) => Math.min(min, current.index), withIndex[0].index);
+      const edgeItems = withIndex.filter(token => token.index === minIndex);
+      const chosen =
+        edgeItems.find(token => (token.item as any)?.type === 'note') ??
+        edgeItems[0];
+
+      const item = chosen.item as { type: 'note'; data: Note } | { type: 'separator'; date: Date };
+      if (item.type === 'separator') {
+        setSelectedDate(item.date);
+      } else {
+        setSelectedDate(item.data.timestamp);
+      }
+    }
+  ).current;
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
@@ -185,16 +210,7 @@ export default function MainScreen({ navigation }: any) {
         contentContainerStyle={styles.notesList}
         inverted
         showsVerticalScrollIndicator={false}
-        onViewableItemsChanged={({ viewableItems }) => {
-          if (viewableItems.length > 0) {
-            const topItem = viewableItems[0].item;
-            if (topItem.type === 'separator') {
-              setSelectedDate(topItem.date);
-            } else {
-              setSelectedDate(topItem.data.timestamp);
-            }
-          }
-        }}
+        onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={{
           itemVisiblePercentThreshold: 50,
           minimumViewTime: 300,
