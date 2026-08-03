@@ -91,7 +91,6 @@ export default function MessageInputBar({
           placeholder="Type your note here..."
           placeholderTextColor="#999"
           multiline
-          maxLength={1000}
           editable={true}
           autoCorrect={true}
           autoCapitalize="sentences"
